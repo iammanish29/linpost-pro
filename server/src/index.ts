@@ -43,8 +43,15 @@ const authLimiter = rateLimit({
   message: { message: "Too many authentication attempts, please try again later." },
 });
 
-app.use("/api/", globalLimiter);
-app.use("/api/auth/", authLimiter);
+const staticLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 500,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use("/api", globalLimiter);
+app.use("/api/auth", authLimiter);
 
 // Health check
 app.get("/health", (_req, res) => {
@@ -64,7 +71,7 @@ app.use("/api/hashtags", hashtagRoutes);
 if (process.env.NODE_ENV === "production") {
   const clientPath = path.join(__dirname, "../../client/dist");
   app.use(express.static(clientPath));
-  app.get("*", (_req, res) => {
+  app.get("*", staticLimiter, (_req, res) => {
     res.sendFile(path.join(clientPath, "index.html"));
   });
 }
